@@ -124,7 +124,7 @@ public class MessageServiceImpl {
                 throw new IllegalArgumentException("Message queueId must not be null");
             }
 
-            queueEntity = queueRepository.getQueueById(messageEntity.getQueue().getId())
+            QueueEntity queueEntity = queueRepository.getQueueById(messageEntity.getQueue().getId())
                     .orElseThrow(() -> new EntityNotFoundException("Queue not found for id: " + messageEntity.getQueue().getId()));
             messageEntity.setQueue(queueEntity);
             return messageEntity;
