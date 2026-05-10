@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
+@Service("psqlMessageServiceImpl")
 public class MessageServiceImpl {
 
     @Autowired
@@ -60,7 +60,7 @@ public class MessageServiceImpl {
 
     public List<MessageEntityDTO> getMessagesByQueueId(UUID queueId) {
         try {
-            return messageRepository.findAllByQueue_Id(queueId).stream()
+            return messageRepository.findAllByQueue_IdAndStatusOrderByCreatedAtAsc(queueId, MessageStatus.READY).stream()
                     .map(messageEntityMapper::toDTO)
                     .collect(Collectors.toList());
         } catch (Exception e) {

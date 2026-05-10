@@ -5,5 +5,6 @@ public enum MessageStatus {
     IN_FLIGHT,
     ACKED,
     FAILED,
-    DLQ
+    DLQ,
+    PURGED
 }

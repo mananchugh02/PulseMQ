@@ -1,6 +1,7 @@
 package org.pulsemq.pulsemq.psql.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.pulsemq.pulsemq.broker.memory.InMemoryQueueRegistry;
 import org.pulsemq.pulsemq.psql.dto.QueueEntityDTO;
 import org.pulsemq.pulsemq.psql.mapper.QueueEntityMapper;
 import org.pulsemq.pulsemq.psql.model.QueueEntity;
@@ -12,20 +13,24 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
+@Service("psqlQueueServiceImpl")
 public class QueueServiceImpl {
 
     @Autowired
     private QueueRepository queueRepository;
     @Autowired
     private QueueEntityMapper queueEntityMapper;
+    @Autowired
+    private InMemoryQueueRegistry inMemoryQueueRegistry;
 
 
      
     public QueueEntityDTO createQueue(QueueEntityDTO queueEntityDTO) {
         try {
             QueueEntity queueEntity = queueEntityMapper.toEntity(queueEntityDTO);
-            return queueEntityMapper.toDTO(queueRepository.createQueue(queueEntity));
+            QueueEntity savedQueueEntity = queueRepository.createQueue(queueEntity);
+            inMemoryQueueRegistry.registerQueue(savedQueueEntity);
+            return queueEntityMapper.toDTO(savedQueueEntity);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create queue", e);
         }
@@ -35,7 +40,9 @@ public class QueueServiceImpl {
     public QueueEntityDTO updateQueue(QueueEntityDTO queueEntityDTO) {
         try {
             QueueEntity queueEntity = queueEntityMapper.toEntity(queueEntityDTO);
-            return queueEntityMapper.toDTO(queueRepository.updateQueue(queueEntity));
+            QueueEntity savedQueueEntity = queueRepository.updateQueue(queueEntity);
+            inMemoryQueueRegistry.registerQueue(savedQueueEntity);
+            return queueEntityMapper.toDTO(savedQueueEntity);
         } catch (Exception e) {
             throw new RuntimeException("Failed to update queue", e);
         }
@@ -81,6 +88,7 @@ public class QueueServiceImpl {
                 throw new IllegalArgumentException("Queue DTO and id must not be null");
             }
             queueRepository.deleteQueueById(queueEntityDTO.getId());
+            inMemoryQueueRegistry.removeQueue(queueEntityDTO.getId());
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete queue", e);
         }

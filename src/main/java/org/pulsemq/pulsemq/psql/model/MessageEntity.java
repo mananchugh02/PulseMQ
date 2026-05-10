@@ -30,8 +30,7 @@ public class MessageEntity {
     @JoinColumn(name = "queue_id", nullable = false)
     private QueueEntity queue;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
 
     @Enumerated(EnumType.STRING)

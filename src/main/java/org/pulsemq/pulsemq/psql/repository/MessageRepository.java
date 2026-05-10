@@ -2,7 +2,10 @@ package org.pulsemq.pulsemq.psql.repository;
 
 import org.pulsemq.pulsemq.common.enums.MessageStatus;
 import org.pulsemq.pulsemq.psql.model.MessageEntity;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -25,15 +28,25 @@ public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
         return findById(messageId);
     }
 
-    default void deleteMessage(MessageEntity messageEntity) {
-        delete(messageEntity);
-    }
 
     default void deleteMessageById(UUID messageId) {
         deleteById(messageId);
     }
 
     List<MessageEntity> findAllByQueue_Id(UUID queueId);
+
+    List<MessageEntity> findAllByQueue_IdAndStatusOrderByCreatedAtAsc(UUID queueId, MessageStatus status);
+
+    @Modifying
+    @Query("""
+            update MessageEntity m
+            set m.status = :newStatus
+            where m.queue.id = :queueId
+              and m.status = :currentStatus
+            """)
+    int updateStatusByQueue_IdAndStatus(@Param("queueId") UUID queueId,
+                                        @Param("currentStatus") MessageStatus currentStatus,
+                                        @Param("newStatus") MessageStatus newStatus);
 
     List<MessageEntity> findAllByStatus(MessageStatus status);
 
