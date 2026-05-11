@@ -9,14 +9,17 @@ import org.pulsemq.pulsemq.DTO.ResponseDTO.CreateQueueResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.DeleteQueueResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.GetAllQueuesResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.GetQueueMessagesResponseDTO;
+import org.pulsemq.pulsemq.DTO.ResponseDTO.QueueMessageResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.PurgeQueueResponseDTO;
 import org.pulsemq.pulsemq.common.enums.QueueType;
 import org.pulsemq.pulsemq.controller.api.QueueControllerApi;
 import org.pulsemq.pulsemq.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.util.UUID;
 
@@ -27,6 +30,9 @@ public class QueueControllerImpl implements QueueControllerApi {
 
     @Autowired
     private QueueService queueService;
+
+    @Autowired
+    private org.pulsemq.pulsemq.service.MessageConsumeService messageConsumeService;
 
     @Override
     @PostMapping("/createQueue")
@@ -99,6 +105,33 @@ public class QueueControllerImpl implements QueueControllerApi {
         } catch (Exception ex) {
             log.error("Error retrieving messages for queue {}", queueId, ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to get queue messages", ex);
+        }
+    }
+
+    @Override
+    @GetMapping("/{queueId}/consume")
+    public ResponseEntity<QueueMessageResponseDTO> consumeMessage(@PathVariable UUID queueId,
+                                                                  @RequestParam(name = "timeout", required = false, defaultValue = "30") Long timeoutSeconds) {
+        log.info("Incoming request - GET /api/queues/{}/consume?timeout={}", queueId, timeoutSeconds);
+        try {
+            return messageConsumeService.consumeMessage(queueId, timeoutSeconds)
+                    .map(response -> {
+                        log.info("Successfully consumed message {} from queue {}", response.getId(), queueId);
+                        return ResponseEntity.ok(response);
+                    })
+                    .orElseGet(() -> {
+                        log.info("Consumer timeout reached for queue {} after {}s", queueId, timeoutSeconds);
+                        return ResponseEntity.noContent().build();
+                    });
+        } catch (EntityNotFoundException ex) {
+            log.warn("Consume target not found for queue {}: {}", queueId, ex.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage(), ex);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Bad request - Invalid consume request for queue {}: {}", queueId, ex.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        } catch (Exception ex) {
+            log.error("Error consuming message for queue {}", queueId, ex);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to consume message", ex);
         }
     }
 

@@ -19,6 +19,8 @@ import org.pulsemq.pulsemq.psql.repository.BindingRepository;
 import org.pulsemq.pulsemq.psql.repository.ExchangeRepository;
 import org.pulsemq.pulsemq.psql.repository.MessageRepository;
 import org.pulsemq.pulsemq.psql.repository.QueueRepository;
+import org.pulsemq.pulsemq.service.wal.WalEvent;
+import org.pulsemq.pulsemq.service.wal.WalEventRecorder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -42,6 +44,8 @@ public class MessagePublishService {
     private final QueueRepository queueRepository;
     private final MessageRepository messageRepository;
     private final InMemoryQueueRegistry inMemoryQueueRegistry;
+    private final org.pulsemq.pulsemq.service.QueueMetricsService queueMetricsService;
+    private final WalEventRecorder walEventRecorder;
 
     @Transactional
     public PublishMessageResponseDTO publishMessage(PublishMessageRequestDTO requestDTO) {
@@ -77,6 +81,8 @@ public class MessagePublishService {
         for (MessageEntity savedMessage : savedMessages) {
             QueueEntity queueEntity = Objects.requireNonNull(savedMessage.getQueue(), "savedMessage queue must not be null");
             InMemoryQueue inMemoryQueue = ensureInMemoryQueue(queueEntity);
+            // ensure metrics are registered for this queue
+            queueMetricsService.registerQueueMetrics(queueEntity);
             QueuedMessage queuedMessage = QueuedMessage.builder()
                     .messageId(savedMessage.getId())
                     .queueId(queueEntity.getId())
@@ -90,6 +96,11 @@ public class MessagePublishService {
             if (!accepted) {
                 throw new IllegalStateException("Unable to enqueue message into in-memory queue: " + queueEntity.getId());
             }
+
+            walEventRecorder.record(WalEvent.publish(queuedMessage, queueEntity, savedMessage.getRetryCount(), now));
+
+            // metrics: published and queue depth gauge is automatically tracked by gauge
+            queueMetricsService.incrementPublished(queueEntity.getId().toString());
 
             deliveries.add(PublishMessageDeliveryDTO.builder()
                     .queueId(queueEntity.getId())

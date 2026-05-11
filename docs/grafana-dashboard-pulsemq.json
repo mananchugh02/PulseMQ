@@ -1,0 +1,63 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "#000000",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Queue Depth",
+      "targets": [
+        {
+          "expr": "pulsemq_queue_depth{queueName=~\".*\"}",
+          "legendFormat": "{{queueName}}",
+          "refId": "A"
+        }
+      ],
+      "id": 1
+    },
+    {
+      "type": "graph",
+      "title": "In-flight Messages",
+      "targets": [
+        {
+          "expr": "pulsemq_inflight_count{queueName=~\".*\"}",
+          "legendFormat": "{{queueName}}",
+          "refId": "A"
+        }
+      ],
+      "id": 2
+    },
+    {
+      "type": "graph",
+      "title": "Published / Consumed",
+      "targets": [
+        { "expr": "increase(pulsemq_messages_published[5m])", "legendFormat": "published", "refId": "A" },
+        { "expr": "increase(pulsemq_messages_consumed[5m])", "legendFormat": "consumed", "refId": "B" }
+      ],
+      "id": 3
+    },
+    {
+      "type": "graph",
+      "title": "ACK / NACK / Retries / DLQ",
+      "targets": [
+        { "expr": "increase(pulsemq_ack_total[5m])", "legendFormat": "ack", "refId": "A" },
+        { "expr": "increase(pulsemq_nack_total[5m])", "legendFormat": "nack", "refId": "B" },
+        { "expr": "increase(pulsemq_retry_total[5m])", "legendFormat": "retry", "refId": "C" },
+        { "expr": "increase(pulsemq_dlq_total[5m])", "legendFormat": "dlq", "refId": "D" }
+      ],
+      "id": 4
+    }
+  ],
+  "title": "PulseMQ Overview"
+}
+

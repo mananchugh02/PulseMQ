@@ -6,9 +6,11 @@ import org.pulsemq.pulsemq.DTO.ResponseDTO.CreateQueueResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.DeleteQueueResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.GetAllQueuesResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.GetQueueMessagesResponseDTO;
+import org.pulsemq.pulsemq.DTO.ResponseDTO.QueueMessageResponseDTO;
 import org.pulsemq.pulsemq.DTO.ResponseDTO.PurgeQueueResponseDTO;
 import org.pulsemq.pulsemq.common.enums.QueueType;
 import org.springframework.stereotype.Component;
+import org.springframework.http.ResponseEntity;
 
 import java.util.UUID;
 
@@ -34,6 +36,8 @@ public interface QueueControllerApi {
      * @return queue messages response
      */
     GetQueueMessagesResponseDTO getQueueMessages(UUID queueId);
+
+    ResponseEntity<QueueMessageResponseDTO> consumeMessage(UUID queueId, Long timeoutSeconds);
 
     /**
      * Purge all messages from a queue

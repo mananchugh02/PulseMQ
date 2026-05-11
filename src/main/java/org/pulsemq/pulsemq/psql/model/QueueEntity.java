@@ -33,6 +33,10 @@ public class QueueEntity {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dead_letter_queue_id")
+    private QueueEntity deadLetterQueue;
+
     @PrePersist
     public void prePersist() {
         Instant now = Instant.now();

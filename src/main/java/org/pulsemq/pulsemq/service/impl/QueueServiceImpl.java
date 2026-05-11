@@ -44,6 +44,8 @@ public class QueueServiceImpl implements QueueService {
 
     @Autowired
     private MessageRepository messageRepository;
+    @Autowired
+    private org.pulsemq.pulsemq.service.QueueMetricsService queueMetricsService;
 
     @Override
     public CreateQueueResponseDTO createQueue(CreateQueueRequestDTO createQueueRequest) {
@@ -58,7 +60,27 @@ public class QueueServiceImpl implements QueueService {
 
             // Save to database
             QueueEntity savedEntity = queueRepository.createQueue(queueEntity);
-            inMemoryQueueRegistry.registerQueue(savedEntity);
+            // If MAIN queue, automatically create a DLQ and associate it
+                if (savedEntity.getType() == org.pulsemq.pulsemq.common.enums.QueueType.MAIN) {
+                String dlqName = savedEntity.getName() + ".dlq";
+                QueueEntity dlq = QueueEntity.builder()
+                        .name(dlqName)
+                        .type(org.pulsemq.pulsemq.common.enums.QueueType.DLQ)
+                        .build();
+                QueueEntity savedDlq = queueRepository.createQueue(dlq);
+                // associate
+                savedEntity.setDeadLetterQueue(savedDlq);
+                savedEntity = queueRepository.updateQueue(savedEntity);
+                // register both runtime queues
+                inMemoryQueueRegistry.registerQueue(savedEntity);
+                inMemoryQueueRegistry.registerQueue(savedDlq);
+                // register metrics for both
+                queueMetricsService.registerQueueMetrics(savedEntity);
+                queueMetricsService.registerQueueMetrics(savedDlq);
+            } else {
+                inMemoryQueueRegistry.registerQueue(savedEntity);
+                queueMetricsService.registerQueueMetrics(savedEntity);
+            }
             log.debug("Service: Successfully saved queue with ID: {} to database", savedEntity.getId());
 
             // Convert to response DTO

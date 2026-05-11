@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'pulsemq'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['pulsemq:8080']
+    scheme: 'http'
+
+# Adjust target to your PulseMQ host/port. If running locally, use 127.0.0.1:8080
+

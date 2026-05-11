@@ -22,6 +22,8 @@ public class QueueServiceImpl {
     private QueueEntityMapper queueEntityMapper;
     @Autowired
     private InMemoryQueueRegistry inMemoryQueueRegistry;
+    @Autowired
+    private org.pulsemq.pulsemq.service.QueueMetricsService queueMetricsService;
 
 
      
@@ -29,7 +31,24 @@ public class QueueServiceImpl {
         try {
             QueueEntity queueEntity = queueEntityMapper.toEntity(queueEntityDTO);
             QueueEntity savedQueueEntity = queueRepository.createQueue(queueEntity);
-            inMemoryQueueRegistry.registerQueue(savedQueueEntity);
+            if (savedQueueEntity.getType() == org.pulsemq.pulsemq.common.enums.QueueType.MAIN) {
+                // create DLQ
+                String dlqName = savedQueueEntity.getName() + ".dlq";
+                QueueEntity dlq = QueueEntity.builder()
+                        .name(dlqName)
+                        .type(org.pulsemq.pulsemq.common.enums.QueueType.DLQ)
+                        .build();
+                QueueEntity savedDlq = queueRepository.createQueue(dlq);
+                savedQueueEntity.setDeadLetterQueue(savedDlq);
+                savedQueueEntity = queueRepository.updateQueue(savedQueueEntity);
+                inMemoryQueueRegistry.registerQueue(savedQueueEntity);
+                inMemoryQueueRegistry.registerQueue(savedDlq);
+                queueMetricsService.registerQueueMetrics(savedQueueEntity);
+                queueMetricsService.registerQueueMetrics(savedDlq);
+            } else {
+                inMemoryQueueRegistry.registerQueue(savedQueueEntity);
+                queueMetricsService.registerQueueMetrics(savedQueueEntity);
+            }
             return queueEntityMapper.toDTO(savedQueueEntity);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create queue", e);

@@ -40,6 +40,9 @@ public class MessageEntity {
     @Column(nullable = false)
     private Integer retryCount;
 
+    @Column(name = "original_queue_id")
+    private java.util.UUID originalQueueId;
+
     @Column(name = "visible_at", nullable = false)
     private Instant visibleAt;
 

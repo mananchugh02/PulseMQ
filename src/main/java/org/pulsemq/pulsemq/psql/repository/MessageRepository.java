@@ -52,6 +52,8 @@ public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
 
     List<MessageEntity> findAllByStatus(MessageStatus status);
 
+    List<MessageEntity> findAllByStatusAndVisibleAtLessThanEqual(MessageStatus status, Instant visibleAt);
+
     List<MessageEntity> findAllByPayloadContainingIgnoreCase(String payload);
 
     List<MessageEntity> findAllByQueue_IdAndStatusAndVisibleAtLessThanEqual(

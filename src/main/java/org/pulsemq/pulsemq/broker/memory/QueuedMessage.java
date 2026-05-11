@@ -18,6 +18,8 @@ public class QueuedMessage {
     private final String routingKey;
     private final String payload;
     private final Map<String, String> headers;
+    // Timestamp when message was moved to IN_FLIGHT in runtime tracking
+    private final Instant inflightAt;
     private final Instant enqueuedAt;
 }
 

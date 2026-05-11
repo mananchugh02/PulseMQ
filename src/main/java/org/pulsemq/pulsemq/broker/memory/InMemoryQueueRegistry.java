@@ -1,6 +1,7 @@
 package org.pulsemq.pulsemq.broker.memory;
 
 import org.pulsemq.pulsemq.psql.model.QueueEntity;
+import org.pulsemq.pulsemq.service.wal.WalEventRecorder;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -16,6 +17,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class InMemoryQueueRegistry {
 
     private final ConcurrentMap<UUID, InMemoryQueue> queues = new ConcurrentHashMap<>();
+    private final WalEventRecorder walEventRecorder;
+
+    public InMemoryQueueRegistry(WalEventRecorder walEventRecorder) {
+        this.walEventRecorder = walEventRecorder;
+    }
 
     public synchronized void replaceAll(Collection<QueueEntity> queueEntities) {
         ConcurrentMap<UUID, InMemoryQueue> refreshedQueues = new ConcurrentHashMap<>();
@@ -26,9 +32,6 @@ public class InMemoryQueueRegistry {
                         InMemoryQueue existingQueue = queues.get(queueEntity.getId());
                         BlockingQueue<QueuedMessage> buffer = existingQueue != null
                                 ? existingQueue.getBuffer()
-                                : new LinkedBlockingQueue<>();
-                        BlockingQueue<QueuedMessage> deadLetterBuffer = existingQueue != null
-                                ? existingQueue.getDeadLetterBuffer()
                                 : new LinkedBlockingQueue<>();
                         ConcurrentMap<UUID, QueuedMessage> inFlightMessages = existingQueue != null
                                 ? existingQueue.getInFlightMessages()
@@ -43,8 +46,8 @@ public class InMemoryQueueRegistry {
                                         queueEntity.getCreatedAt(),
                                         queueEntity.getUpdatedAt(),
                                         buffer,
-                                        deadLetterBuffer,
-                                        inFlightMessages
+                                        inFlightMessages,
+                                        walEventRecorder
                                 )
                         );
                     });
@@ -63,9 +66,6 @@ public class InMemoryQueueRegistry {
         BlockingQueue<QueuedMessage> buffer = existingQueue != null
                 ? existingQueue.getBuffer()
                 : new LinkedBlockingQueue<>();
-        BlockingQueue<QueuedMessage> deadLetterBuffer = existingQueue != null
-                ? existingQueue.getDeadLetterBuffer()
-                : new LinkedBlockingQueue<>();
         ConcurrentMap<UUID, QueuedMessage> inFlightMessages = existingQueue != null
                 ? existingQueue.getInFlightMessages()
                 : new ConcurrentHashMap<>();
@@ -77,8 +77,8 @@ public class InMemoryQueueRegistry {
                 queueEntity.getCreatedAt(),
                 queueEntity.getUpdatedAt(),
                 buffer,
-                deadLetterBuffer,
-                inFlightMessages
+                inFlightMessages,
+                walEventRecorder
         );
         queues.put(queueEntity.getId(), inMemoryQueue);
         return inMemoryQueue;
