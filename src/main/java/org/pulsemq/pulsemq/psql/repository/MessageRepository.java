@@ -28,6 +28,8 @@ public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
         return findById(messageId);
     }
 
+    Optional<MessageEntity> findByIdAndQueue_Id(UUID messageId, UUID queueId);
+
 
     default void deleteMessageById(UUID messageId) {
         deleteById(messageId);

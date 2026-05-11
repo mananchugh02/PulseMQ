@@ -27,6 +27,12 @@ public class InMemoryQueueRegistry {
                         BlockingQueue<QueuedMessage> buffer = existingQueue != null
                                 ? existingQueue.getBuffer()
                                 : new LinkedBlockingQueue<>();
+                        BlockingQueue<QueuedMessage> deadLetterBuffer = existingQueue != null
+                                ? existingQueue.getDeadLetterBuffer()
+                                : new LinkedBlockingQueue<>();
+                        ConcurrentMap<UUID, QueuedMessage> inFlightMessages = existingQueue != null
+                                ? existingQueue.getInFlightMessages()
+                                : new ConcurrentHashMap<>();
 
                         refreshedQueues.put(
                                 queueEntity.getId(),
@@ -36,7 +42,9 @@ public class InMemoryQueueRegistry {
                                         queueEntity.getType(),
                                         queueEntity.getCreatedAt(),
                                         queueEntity.getUpdatedAt(),
-                                        buffer
+                                        buffer,
+                                        deadLetterBuffer,
+                                        inFlightMessages
                                 )
                         );
                     });
@@ -55,6 +63,12 @@ public class InMemoryQueueRegistry {
         BlockingQueue<QueuedMessage> buffer = existingQueue != null
                 ? existingQueue.getBuffer()
                 : new LinkedBlockingQueue<>();
+        BlockingQueue<QueuedMessage> deadLetterBuffer = existingQueue != null
+                ? existingQueue.getDeadLetterBuffer()
+                : new LinkedBlockingQueue<>();
+        ConcurrentMap<UUID, QueuedMessage> inFlightMessages = existingQueue != null
+                ? existingQueue.getInFlightMessages()
+                : new ConcurrentHashMap<>();
 
         InMemoryQueue inMemoryQueue = new InMemoryQueue(
                 queueEntity.getId(),
@@ -62,7 +76,9 @@ public class InMemoryQueueRegistry {
                 queueEntity.getType(),
                 queueEntity.getCreatedAt(),
                 queueEntity.getUpdatedAt(),
-                buffer
+                buffer,
+                deadLetterBuffer,
+                inFlightMessages
         );
         queues.put(queueEntity.getId(), inMemoryQueue);
         return inMemoryQueue;
