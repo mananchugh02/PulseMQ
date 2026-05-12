@@ -56,11 +56,15 @@ public class MessageLifecycleService {
             throw new IllegalStateException("Message " + messageId + " is already in terminal state " + messageEntity.getStatus());
         }
 
+        if (messageEntity.getStatus() != MessageStatus.IN_FLIGHT) {
+            throw new IllegalStateException("Message " + messageId + " is not in IN_FLIGHT state for " + lifecycleAction + " (current: " + messageEntity.getStatus() + ")");
+        }
+
         InMemoryQueue inMemoryQueue = inMemoryQueueRegistry.getQueue(queueId)
                 .orElseThrow(() -> new EntityNotFoundException("Runtime queue not found for id: " + queueId));
 
-        QueuedMessage runtimeMessage = inMemoryQueue.claimMessage(messageId)
-                .orElseThrow(() -> new IllegalStateException("Message " + messageId + " is not present in runtime tracking for queue " + queueId));
+        QueuedMessage runtimeMessage = java.util.Optional.ofNullable(inMemoryQueue.getInFlightMessages().get(messageId))
+                .orElseThrow(() -> new IllegalStateException("Message " + messageId + " is not present in runtime in-flight tracking for queue " + queueId));
 
         Instant now = Instant.now();
         if (lifecycleAction == LifecycleAction.ACK) {

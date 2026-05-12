@@ -157,10 +157,13 @@ public class QueueServiceImpl implements QueueService {
             QueueEntity queueEntity = queueRepository.getQueueById(queueId)
                     .orElseThrow(() -> new IllegalArgumentException("Queue with ID " + queueId + " not found"));
 
-            int databaseMessagesPurged = messageRepository.updateStatusByQueue_IdAndStatus(queueId, MessageStatus.READY, MessageStatus.PURGED);
+            int databaseMessagesPurged = 0;
+            databaseMessagesPurged += messageRepository.updateStatusByQueue_IdAndStatus(queueId, MessageStatus.READY, MessageStatus.PURGED);
+            databaseMessagesPurged += messageRepository.updateStatusByQueue_IdAndStatus(queueId, MessageStatus.IN_FLIGHT, MessageStatus.PURGED);
+            databaseMessagesPurged += messageRepository.updateStatusByQueue_IdAndStatus(queueId, MessageStatus.RETRY_PENDING, MessageStatus.PURGED);
 
             int inMemoryMessagesCleared = inMemoryQueueRegistry.getQueue(queueId)
-                    .map(InMemoryQueue::clear)
+                    .map(queue -> queue.clear() + queue.clearInFlight())
                     .orElse(0);
 
             return PurgeQueueResponseDTO.builder()

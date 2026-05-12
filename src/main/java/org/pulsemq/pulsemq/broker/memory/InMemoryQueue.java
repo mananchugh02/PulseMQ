@@ -185,6 +185,14 @@ public class InMemoryQueue {
         }
     }
 
+    public int clearInFlight() {
+        synchronized (this) {
+            int size = inFlightMessages.size();
+            inFlightMessages.clear();
+            return size;
+        }
+    }
+
     public int clearDeadLetter() {
         throw new UnsupportedOperationException("Dead letter queue is a regular queue; use its queue id to clear");
     }
